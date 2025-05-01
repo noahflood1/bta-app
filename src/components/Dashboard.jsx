@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -32,7 +34,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 text-white">
+    <main className="min-h-screen px-4 py-6 text-white relative">
       <h1 className="text-2xl font-semibold mb-4 text-center">
         Welcome, {user.displayName || 'Athlete'}
       </h1>
@@ -58,11 +60,21 @@ export default function Dashboard() {
           No stats available yet. You haven't completed a workout.
         </p>
       )}
+
+      <div className="mt-8 text-center">
+        <button
+          onClick={() => navigate('/workout')}
+          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold transition"
+        >
+          Start Workout
+        </button>
+      </div>
+
       <button
-         className="absolute top-4 right-4 gray hover:bg-red-700 text-white px-4 py-2 rounded-md transition"
-         onClick={() => signOut(auth)}
-         >
-         Log Out
+        className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition"
+        onClick={() => signOut(auth)}
+      >
+        Log Out
       </button>
     </main>
   );
