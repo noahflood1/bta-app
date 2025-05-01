@@ -2,32 +2,25 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
+export default function Dashboard({ user, onStartWorkout, onLogout }) {
   const [stats, setStats] = useState(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
+    async function fetchStats() {
+      if (!user) return;
 
-        // Try to fetch shooting and training statistics from Firestore
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-
-        if (userDoc.exists()) {
-          setStats(userDoc.data());
-        } else {
-          setStats(null); // New user, no data yet
-        }
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        setStats(userDoc.data());
+      } else {
+        setStats(null);
       }
-    });
+    }
 
-    return () => unsubscribe();
-  }, []);
+    fetchStats();
+  }, [user]);
 
   if (!user) {
     return <p className="text-white text-center mt-8">Loading user info...</p>;
@@ -63,7 +56,7 @@ export default function Dashboard() {
 
       <div className="mt-8 text-center">
         <button
-          onClick={() => navigate('/workout')}
+          onClick={onStartWorkout}
           className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold transition"
         >
           Start Workout
@@ -72,7 +65,10 @@ export default function Dashboard() {
 
       <button
         className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition"
-        onClick={() => signOut(auth)}
+        onClick={() => {
+          signOut(auth);
+          onLogout();
+        }}
       >
         Log Out
       </button>
