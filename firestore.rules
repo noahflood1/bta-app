@@ -17,3 +17,39 @@ service cloud.firestore {
     }
   }
 }
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow user to read/write their root profile
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Allow access to user's workout history
+      match /workouts/{workoutId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+
+        // Access to segments of a workout
+        match /segments/{segmentId} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+
+        // Access to workout-specific stats
+        match /shooting_stats/{doc} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+        match /training_stats/{doc} {
+          allow read, write: if request.auth != null && request.auth.uid == userId;
+        }
+      }
+
+      // Global stats
+      match /shooting_stats/{doc} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /training_stats/{doc} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

@@ -1,4 +1,13 @@
 import { useEffect, useState } from 'react';
+import { db, auth } from '../firebase';
+import {
+  collection,
+  addDoc,
+  doc,
+  setDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid'; 
 
 export default function WorkoutSession({ onEndWorkout }) {
   const [seconds, setSeconds] = useState(0);
@@ -18,10 +27,57 @@ export default function WorkoutSession({ onEndWorkout }) {
     return `${m}:${s}`;
   };
 
-  const handleEndWorkout = () => {
-    // TODO: Save to Firestore later
-    onEndWorkout();
+  const handleEndWorkout = async () => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+  
+      const uid = user.uid;
+      const now = new Date();
+      const sessionId = uuidv4();
+  
+      const workoutRef = doc(db, 'users', uid, 'workouts', sessionId);
+      const startTimestamp = now.toISOString();
+      const endTimestamp = new Date(now.getTime() + seconds * 1000).toISOString();
+  
+      await setDoc(workoutRef, {
+        date: startTimestamp,
+        start_time: startTimestamp,
+        end_time: endTimestamp,
+        duration: seconds,
+        focus: 'threes',
+      });
+  
+      const segmentRef = doc(
+        db,
+        'users',
+        uid,
+        'workouts',
+        sessionId,
+        'segments',
+        uuidv4()
+      );
+  
+      await setDoc(segmentRef, {
+        type: 'threes',
+        makes: makes || 0,
+        misses: misses || 0,
+        start_time: startTimestamp,
+        end_time: endTimestamp,
+        hand: null,
+        shot_record: null,
+        user_note: null,
+        location: null,
+      });
+  
+      console.log('Workout saved');
+      onEndWorkout(); // ✅ This now happens after successful write
+    } catch (err) {
+      console.error('🔥 Error saving workout:', err);
+      alert('Failed to save workout. Check console.');
+    }
   };
+  
 
   return (
     <div className="min-h-screen p-6 bg-black text-white space-y-6">

@@ -1,77 +1,63 @@
 import { useEffect, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
+
+import { fetchUserWorkouts } from '../hooks/useWorkoutData';
+import { calculateGlobalStats } from '../hooks/useStatsCalculator';
+import StatsDashboard from './StatsDashboard'; // or '../components/StatsDashboard' depending on location
 
 export default function Dashboard({ user, onStartWorkout, onLogout }) {
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    async function fetchStats() {
-      if (!user) return;
-
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        setStats(userDoc.data());
-      } else {
-        setStats(null);
-      }
+    async function loadStats() {
+      console.log(user)
+      console.log("user value should be non-null ^")
+      console.log()
+      const segments = await fetchUserWorkouts();
+      const globalStats = calculateGlobalStats(segments);
+      setStats(globalStats);
     }
 
-    fetchStats();
-  }, [user]);
+    loadStats();
+  }, []);
 
   if (!user) {
     return <p className="text-white text-center mt-8">Loading user info...</p>;
   }
 
   return (
-    <main className="min-h-screen px-4 py-6 text-white relative">
-      <h1 className="text-2xl font-semibold mb-4 text-center">
-        Welcome, {user.displayName || 'Athlete'}
-      </h1>
+   <main className="flex flex-col min-h-screen px-4 py-6 text-white">
+   <h1 className="text-2xl font-semibold mb-4 text-center">
+      Welcome, {user.displayName || 'Athlete'}
+   </h1>
 
-      {stats ? (
-        <div className="space-y-4">
-          <section>
-            <h2 className="text-xl font-semibold">Shooting Statistics</h2>
-            <pre className="bg-gray-800 p-4 rounded-xl overflow-x-auto text-sm">
-              {JSON.stringify(stats.shooting_stats || {}, null, 2)}
-            </pre>
-          </section>
+   {stats ? (
+      <StatsDashboard stats={stats} />
+   ) : (
+      <p className="text-center text-gray-400 mt-8">No stats yet.</p>
+   )}
 
-          <section>
-            <h2 className="text-xl font-semibold">Training Statistics</h2>
-            <pre className="bg-gray-800 p-4 rounded-xl overflow-x-auto text-sm">
-              {JSON.stringify(stats.training_stats || {}, null, 2)}
-            </pre>
-          </section>
-        </div>
-      ) : (
-        <p className="text-center mt-8 text-gray-400">
-          No stats available yet. You haven't completed a workout.
-        </p>
-      )}
-
-      <div className="mt-8 text-center">
-        <button
-          onClick={onStartWorkout}
-          className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold transition"
-        >
-          Start Workout
-        </button>
-      </div>
-
+   <div className="mt-8 text-center">
       <button
-        className="absolute top-4 right-4 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition"
-        onClick={() => {
-          signOut(auth);
-          onLogout();
-        }}
+         onClick={onStartWorkout}
+         className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-xl font-semibold transition"
       >
-        Log Out
+         Start Workout
       </button>
-    </main>
+   </div>
+
+   <div className="mt-auto pt-10 flex justify-center">
+      <button
+         className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-md transition"
+         onClick={() => {
+         signOut(auth);
+         onLogout();
+         }}
+      >
+         Log Out
+      </button>
+   </div>
+   </main>
   );
 }
